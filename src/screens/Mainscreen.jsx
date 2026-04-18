@@ -17,9 +17,11 @@ function Mainscreen() {
   const streamRef = useRef(null);
 
   // 📸 START CAMERA (iOS FIXED)
+
   useEffect(() => {
     const startStream = async () => {
       try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },

@@ -13,7 +13,6 @@ function App() {
     if (!mobile) return;
     const init = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
         setTimeout(() => {
           setSplash(false);
         }, 3000);
