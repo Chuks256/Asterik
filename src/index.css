@@ -1,0 +1,28 @@
+@font-face {
+  font-family: "Poppin_bold";
+  src: url("./assets/Poppins-Bold.ttf");
+}
+
+@font-face {
+  font-family: "Poppin_regular";
+  src: url("./assets/Poppins-Regular.ttf");
+}
+
+@font-face {
+  font-family: "matefont";
+  src: url("./assets/Matemasie-Regular.ttf");
+}
+
+:root {
+  --primary-color: #8641fe;
+  --text-color: #ede2ff;
+  --font-family: "Poppin_regular", sans-serif;
+  --secondary-font-family: "matefont", sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+}
