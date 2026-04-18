@@ -16,12 +16,10 @@ function Mainscreen() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  // 📸 START CAMERA (iOS FIXED)
-
+  // 📸 CAMERA (iOS PWA FIXED VERSION)
   useEffect(() => {
-    const startStream = async () => {
+    const startCamera = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
@@ -31,57 +29,53 @@ function Mainscreen() {
 
         streamRef.current = stream;
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        const video = videoRef.current;
+        if (!video) return;
+        video.srcObject = stream;
 
-          // 🔥 iOS REQUIREMENTS
-          videoRef.current.muted = true;
-          videoRef.current.playsInline = true;
+        // 🔥 IMPORTANT iOS FIXES
+        video.setAttribute("playsinline", true);
+        video.setAttribute("webkit-playsinline", true);
+        video.muted = true;
 
-          await videoRef.current.play();
-        }
+        // wait for metadata then play
+        video.onloadedmetadata = async () => {
+          try {
+            await video.play();
+          } catch (err) {
+            console.error("Video play failed:", err);
+          }
+        };
       } catch (err) {
-        console.error("Camera stream error:", err);
+        console.error("Camera error:", err);
       }
     };
 
-    startStream();
+    startCamera();
 
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
 
-  // 📸 CAPTURE IMAGE (iOS SAFE)
+  // 📸 CAPTURE IMAGE
   const handleClickEvent = () => {
     setSpinner(true);
-
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
     if (!video || !canvas) return;
-
-    if (video.readyState < 2) {
-      console.warn("Video not ready yet");
-      setSpinner(false);
-      return;
-    }
-
     const ctx = canvas.getContext("2d");
 
-    const width = video.videoWidth;
-    const height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    canvas.width = width;
-    canvas.height = height;
-
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageUrl = canvas.toDataURL("image/png");
 
-    console.log("Captured Image:", imageUrl);
+    console.log("Captured:", imageUrl);
 
     setTimeout(() => {
       setSpinner(false);
@@ -94,29 +88,25 @@ function Mainscreen() {
       {reveal && <BottomSheet closeModal={() => showReveal(false)} />}
 
       <Container>
-        {/* hidden canvas for capture */}
         <canvas ref={canvasRef} style={{ display: "none" }} />
 
-        <Video ref={videoRef} autoPlay playsInline />
+        <Video ref={videoRef} autoPlay playsInline muted />
 
         <ParentWrapper>
           <img
             src={Capture}
             alt="overlay"
-            style={{
-              top: "200px",
-              position: "absolute",
-            }}
+            style={{ top: "200px", position: "absolute" }}
           />
 
           <Wrapper>
             <ControlPanelParentContainer>
               <SecondaryIconWrapper>
-                <TbPhoto size={25} color="var(--text-color)" />
+                <TbPhoto color="var(--text-color)" size={25} />
               </SecondaryIconWrapper>
 
               <PrimaryIconWrapper onClick={handleClickEvent}>
-                {spinner ? <SpinnerIcon /> : <FaBolt color="black" size={25} />}
+                {spinner ? <SpinnerIcon /> : <FaBolt size={25} />}
               </PrimaryIconWrapper>
 
               <SecondaryIconWrapper>
