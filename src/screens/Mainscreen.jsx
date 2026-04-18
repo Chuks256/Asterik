@@ -11,6 +11,7 @@ import BottomSheet from "./BottomSheet";
 function Mainscreen() {
   const [reveal, showReveal] = useState(false);
   const [spinner, setSpinner] = useState(false);
+  const [direction, setDirection] = useState(true);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -22,7 +23,7 @@ function Mainscreen() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: "environment" },
+            facingMode: { ideal: direction === true ? "environment" : "user" },
           },
           audio: false,
         });
@@ -109,7 +110,11 @@ function Mainscreen() {
                 {spinner ? <SpinnerIcon /> : <FaBolt size={25} />}
               </PrimaryIconWrapper>
 
-              <SecondaryIconWrapper>
+              <SecondaryIconWrapper
+                onClick={() => {
+                  setDirection(false);
+                }}
+              >
                 <FaArrowRotateRight color="var(--text-color)" size={25} />
               </SecondaryIconWrapper>
             </ControlPanelParentContainer>
