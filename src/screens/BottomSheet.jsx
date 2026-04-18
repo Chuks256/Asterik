@@ -71,7 +71,7 @@ const Modal = styled.div`
   background: #020203;
   width: 100vw;
   position: absolute;
-  height: 70%;
+  height: 75%;
   animation: ${slideUp} 0.35s ease-out;
   bottom: 0;
   border-top-left-radius: 30px;

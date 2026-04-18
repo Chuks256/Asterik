@@ -189,19 +189,11 @@ const ControlPanelParentContainer = styled.div`
   gap: 60px;
 `;
 
-//
-// 🎥 VIDEO
-//
-
 const Video = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
 `;
-
-//
-// 🎛 BUTTONS
-//
 
 const PrimaryIconWrapper = styled.button`
   width: 65px;
@@ -213,8 +205,8 @@ const PrimaryIconWrapper = styled.button`
   justify-content: center;
   border: none;
   transition: 0.1s ease;
-  &:active {
-    transfrom: scale(0.95);
+  &:hover {
+    transform: scale(0.95);
   }
 `;
 
@@ -225,11 +217,9 @@ const SecondaryIconWrapper = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
-
   border: 1px solid rgba(255, 255, 255, 0.35);
   cursor: pointer;
 `;
