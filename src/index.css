@@ -20,6 +20,10 @@
   --secondary-font-family: "matefont", sans-serif;
 }
 
+body {
+  overflow-y: hidden;
+}
+
 * {
   margin: 0;
   padding: 0;

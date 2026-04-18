@@ -128,7 +128,7 @@ const InfoContainer = styled.div`
   align-items: center;
   text-align: center;
   gap: 6px;
-  margin-top: 250px;
+  margin-top: 200px;
   opacity: 0;
   animation: ${fadeUp} 1s ease forwards;
   animation-delay: 1s;

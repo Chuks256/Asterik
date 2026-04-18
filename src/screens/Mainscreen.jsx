@@ -30,7 +30,8 @@ function Mainscreen() {
     setTimeout(() => {
       setSpinner(false);
       showReveal(true);
-    }, 1000);
+    }, 500);
+    clearTimeout();
   };
 
   //   start video stream on component load
@@ -94,7 +95,7 @@ function Mainscreen() {
                   handleClickEvent();
                 }}
               >
-                {spinner ? <SpinnerIcon /> : <FaBolt size={25} />}
+                {spinner ? <SpinnerIcon /> : <FaBolt color="black" size={25} />}
               </PrimaryIconWrapper>
               <SecondaryIconWrapper>
                 <FaArrowRotateRight size={25} />
@@ -142,7 +143,7 @@ const ParentWrapper = styled.div`
 
 const Wrapper = styled.div`
   width: 100vw;
-  height: 18vh;
+  height: 20vh;
   position: absolute;
   bottom: 0;
   background: linear-gradient(
