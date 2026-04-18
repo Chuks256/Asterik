@@ -11,25 +11,25 @@ import BottomSheet from "./BottomSheet";
 function Mainscreen() {
   const [reveal, showReveal] = useState(false);
   const [spinner, setSpinner] = useState(false);
-  const [direction, setDirection] = useState(true);
-
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const [direction, setDirection] = useState("environment");
 
   // 📸 CAMERA (iOS PWA FIXED VERSION)
   useEffect(() => {
     const startCamera = async () => {
       try {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: direction === true ? "environment" : "user" },
           },
           audio: false,
         });
-
         streamRef.current = stream;
-
         const video = videoRef.current;
         if (!video) return;
         video.srcObject = stream;
@@ -51,9 +51,7 @@ function Mainscreen() {
         console.error("Camera error:", err);
       }
     };
-
     startCamera();
-
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
@@ -68,20 +66,16 @@ function Mainscreen() {
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
     const ctx = canvas.getContext("2d");
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
     const imageUrl = canvas.toDataURL("image/png");
-
     console.log("Captured:", imageUrl);
-
     setTimeout(() => {
       setSpinner(false);
       showReveal(true);
     }, 500);
+    clearTimeout();
   };
 
   return (
@@ -166,7 +160,7 @@ const ParentWrapper = styled.div`
 
 const Wrapper = styled.div`
   width: 100vw;
-  height: 20vh;
+  height: 19vh;
   position: absolute;
   bottom: 0;
 
