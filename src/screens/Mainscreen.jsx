@@ -1,104 +1,124 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { FaBolt } from "react-icons/fa6";
 import { TbPhoto } from "react-icons/tb";
 import { FaArrowRotateRight } from "react-icons/fa6";
+import { PiSpinnerBold } from "react-icons/pi";
+
 import Capture from "../assets/Capture.png";
 import BottomSheet from "./BottomSheet";
-import { useState } from "react";
-import { PiSpinnerBold } from "react-icons/pi";
 
 function Mainscreen() {
   const [reveal, showReveal] = useState(false);
   const [spinner, setSpinner] = useState(false);
+
   const videoRef = useRef(null);
-  let streamRef = null;
   const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
-  //   ========= FUNCTION TO HANDLE CLICK EVENY FROM BUTTON AND HANDLE IMAGE CAPCTURING
-  const handleClickEvent = () => {
-    setSpinner(true);
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageUrl = canvas.toDataURL("image/png");
-    console.log("Captured Image:", imageUrl);
-    setTimeout(() => {
-      setSpinner(false);
-      showReveal(true);
-    }, 500);
-    clearTimeout();
-  };
-
-  //   start video stream on component load
+  // 📸 START CAMERA (iOS FIXED)
   useEffect(() => {
     const startStream = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: "environment", // back camera (mobile)
+            facingMode: { ideal: "environment" },
           },
           audio: false,
         });
-        streamRef = stream;
+
+        streamRef.current = stream;
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+
+          // 🔥 iOS REQUIREMENTS
+          videoRef.current.muted = true;
+          videoRef.current.playsInline = true;
+
+          await videoRef.current.play();
         }
       } catch (err) {
         console.error("Camera stream error:", err);
       }
     };
+
     startStream();
+
     return () => {
-      if (streamRef) {
-        streamRef.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
+  // 📸 CAPTURE IMAGE (iOS SAFE)
+  const handleClickEvent = () => {
+    setSpinner(true);
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    if (!video || !canvas) return;
+
+    if (video.readyState < 2) {
+      console.warn("Video not ready yet");
+      setSpinner(false);
+      return;
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.drawImage(video, 0, 0, width, height);
+
+    const imageUrl = canvas.toDataURL("image/png");
+
+    console.log("Captured Image:", imageUrl);
+
+    setTimeout(() => {
+      setSpinner(false);
+      showReveal(true);
+    }, 500);
+  };
+
   return (
     <>
-      {reveal == true ? (
-        <BottomSheet closeModal={() => showReveal(false)} />
-      ) : (
-        <></>
-      )}
+      {reveal && <BottomSheet closeModal={() => showReveal(false)} />}
+
       <Container>
+        {/* hidden canvas for capture */}
         <canvas ref={canvasRef} style={{ display: "none" }} />
-        <Video
-          style={{
-            objectFit: "cover",
-          }}
-          ref={videoRef}
-          autoPlay
-          playsInline
-        />
+
+        <Video ref={videoRef} autoPlay playsInline />
+
         <ParentWrapper>
           <img
+            src={Capture}
+            alt="overlay"
             style={{
               top: "200px",
               position: "absolute",
             }}
-            src={Capture}
           />
+
           <Wrapper>
             <ControlPanelParentContainer>
               <SecondaryIconWrapper>
-                <TbPhoto size={25} />
+                <TbPhoto size={25} color="var(--text-color)" />
               </SecondaryIconWrapper>
-              <PrimaryIconWrapper
-                onClick={() => {
-                  handleClickEvent();
-                }}
-              >
+
+              <PrimaryIconWrapper onClick={handleClickEvent}>
                 {spinner ? <SpinnerIcon /> : <FaBolt color="black" size={25} />}
               </PrimaryIconWrapper>
+
               <SecondaryIconWrapper>
-                <FaArrowRotateRight size={25} />
+                <FaArrowRotateRight color="var(--text-color)" size={25} />
               </SecondaryIconWrapper>
             </ControlPanelParentContainer>
           </Wrapper>
@@ -108,28 +128,34 @@ function Mainscreen() {
   );
 }
 
-const Container = styled.div`
-  width: 100vw;
-  height: 100vh;
-  background: black;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-`;
+export default Mainscreen;
+
+//
+// ⚡ ANIMATIONS
+//
 
 const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const SpinnerIcon = styled(PiSpinnerBold)`
   font-size: 25px;
   animation: ${rotate} 1s linear infinite;
+`;
+
+//
+// 📱 LAYOUT
+//
+
+const Container = styled.div`
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const ParentWrapper = styled.div`
@@ -146,6 +172,7 @@ const Wrapper = styled.div`
   height: 20vh;
   position: absolute;
   bottom: 0;
+
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.9) 0%,
@@ -161,7 +188,10 @@ const ControlPanelParentContainer = styled.div`
   justify-content: center;
   gap: 60px;
 `;
-const ControlPanelContentContainer = styled.div``;
+
+//
+// 🎥 VIDEO
+//
 
 const Video = styled.video`
   width: 100%;
@@ -169,25 +199,22 @@ const Video = styled.video`
   object-fit: cover;
 `;
 
+//
+// 🎛 BUTTONS
+//
+
 const PrimaryIconWrapper = styled.button`
   width: 65px;
   height: 65px;
-  border-style: solid;
-  border-color: transparent;
   background: white;
-  display: flex;
   border-radius: 100px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition: linear, 100ms;
-  &:hover {
-    transform: translateY(-1px) scale(1.03);
-  }
+  border: none;
+  transition: 0.1s ease;
   &:active {
-    transform: scale(0.94);
-    box-shadow:
-      inset 0 1px 4px rgba(0, 0, 0, 0.5),
-      0 3px 10px rgba(0, 0, 0, 0.3);
+    transfrom: scale(0.95);
   }
 `;
 
@@ -198,73 +225,11 @@ const SecondaryIconWrapper = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
-  /* ✨ Clear glass (less milk, more transparency) */
+
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
 
-  /* sharper edge like real glass */
   border: 1px solid rgba(255, 255, 255, 0.35);
-
-  /* depth but tighter */
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.35),
-    inset 0 0.5px 1px rgba(255, 255, 255, 0.5);
-
   cursor: pointer;
-  transition: all 0.2s ease;
-
-  /* 🌟 subtle light reflection (less foggy) */
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 40%;
-    border-radius: 50%;
-
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.4),
-      rgba(255, 255, 255, 0.05)
-    );
-
-    opacity: 0.7;
-    pointer-events: none;
-  }
-
-  /* ✨ crisp edge highlight */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-
-    box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.25);
-    pointer-events: none;
-  }
-
-  /* hover = slight lift (not too soft) */
-  &:hover {
-    transform: translateY(-1px) scale(1.03);
-  }
-
-  /* press = glass compression feel */
-  &:active {
-    transform: scale(0.94);
-    box-shadow:
-      inset 0 1px 4px rgba(0, 0, 0, 0.5),
-      0 3px 10px rgba(0, 0, 0, 0.3);
-  }
-
-  svg {
-    color: white;
-    font-size: 20px;
-    z-index: 1;
-  }
 `;
-
-export default Mainscreen;
