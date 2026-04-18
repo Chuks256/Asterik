@@ -12,13 +12,9 @@ function App() {
     setIsMobile(mobile);
     if (!mobile) return;
     const init = async () => {
-      try {
-        setTimeout(() => {
-          setSplash(false);
-        }, 3000);
-      } catch (err) {
-        console.error("Camera blocked:", err);
-      }
+      setTimeout(() => {
+        setSplash(false);
+      }, 4000);
     };
     init();
   }, []);
