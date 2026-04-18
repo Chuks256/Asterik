@@ -25,7 +25,7 @@ function Mainscreen() {
         }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: direction === true ? "environment" : "user" },
+            facingMode: { ideal: "environment" },
           },
           audio: false,
         });
