@@ -71,7 +71,7 @@ function Mainscreen() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageUrl = canvas.toDataURL("image/jpeg", 0.6);
+    const imageUrl = canvas.toDataURL("image/jpeg", 0.4);
     console.log("Captured:", imageUrl);
     try {
       const is_dev = false;
@@ -96,6 +96,12 @@ function Mainscreen() {
     } catch (err) {
       console.log(err);
       alert("something went wrong");
+      try {
+        setSpinner(false);
+        await video.play();
+      } catch (err) {
+        console.error("Video play failed:", err);
+      }
     }
   };
 
