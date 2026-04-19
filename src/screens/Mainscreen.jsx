@@ -4,7 +4,7 @@ import { FaBolt } from "react-icons/fa6";
 import { TbPhoto } from "react-icons/tb";
 import { FaArrowRotateRight } from "react-icons/fa6";
 import { PiSpinnerBold } from "react-icons/pi";
-
+import axios from "axios";
 import Capture from "../assets/Capture.png";
 import BottomSheet from "./BottomSheet";
 
@@ -15,6 +15,7 @@ function Mainscreen() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const [direction, setDirection] = useState("environment");
+  const [data, setData] = useState("no data at the moment");
 
   // 📸 CAMERA (iOS PWA FIXED VERSION)
   useEffect(() => {
@@ -60,27 +61,55 @@ function Mainscreen() {
   }, []);
 
   // 📸 CAPTURE IMAGE
-  const handleClickEvent = () => {
+  const handleClickEvent = async () => {
     setSpinner(true);
     const video = videoRef.current;
+    video.pause();
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
     const ctx = canvas.getContext("2d");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageUrl = canvas.toDataURL("image/png");
+    const imageUrl = canvas.toDataURL("image/jpeg", 0.6);
     console.log("Captured:", imageUrl);
-    setTimeout(() => {
-      setSpinner(false);
-      showReveal(true);
-    }, 500);
-    clearTimeout();
+    try {
+      const is_dev = false;
+      const payload = { input: imageUrl };
+      const response = await axios.post(
+        is_dev === true
+          ? "http://localhost:3453/api/v1/scanDocument"
+          : "https://asterik-backend.onrender.com/api/v1/scanDocument",
+        payload,
+      );
+      console.log(response, payload);
+      if (response.data.msg) {
+        setData(response.data.msg);
+        setTimeout(() => {
+          setSpinner(false);
+          showReveal(true);
+        }, 500);
+        clearTimeout();
+      } else if (response.data.error) {
+        alert(response.data.error);
+      }
+    } catch (err) {
+      console.log(err);
+      alert("something went wrong");
+    }
   };
 
   return (
     <>
-      {reveal && <BottomSheet closeModal={() => showReveal(false)} />}
+      {reveal && (
+        <BottomSheet
+          inputData={data}
+          closeModal={() => {
+            videoRef.current?.play();
+            showReveal(false);
+          }}
+        />
+      )}
 
       <Container>
         <canvas ref={canvasRef} style={{ display: "none" }} />
