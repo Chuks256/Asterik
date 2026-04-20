@@ -7,6 +7,8 @@ import { PiSpinnerBold } from "react-icons/pi";
 import axios from "axios";
 import Capture from "../assets/Capture.png";
 import BottomSheet from "./BottomSheet";
+import SpeechManager from "../utils/SpeechManager";
+import NoInternet from "../components/NoInternet";
 
 function Mainscreen() {
   const [reveal, showReveal] = useState(false);
@@ -16,6 +18,26 @@ function Mainscreen() {
   const streamRef = useRef(null);
   const [direction, setDirection] = useState("environment");
   const [data, setData] = useState("no data at the moment");
+  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
+  const [is_dev, set_is_dev] = useState(false);
+  const [no_internet_status, set_no_internet_status] = useState({
+    text: "Internet Connection Available",
+    status: false,
+  });
+  const [position, setPosition] = useState("-100");
+
+  //@ FUNCTION TO CHECK INTERNET AVAILABILITY
+  const checkInternetAvailability = async () => {
+    try {
+      const url = "https://asterik-backend.onrender.com/api/v1/checkHealth";
+      const response = await axios.get(url);
+      if (response) {
+        return true;
+      }
+    } catch (err) {
+      return false;
+    }
+  };
 
   // 📸 CAMERA (iOS PWA FIXED VERSION)
   useEffect(() => {
@@ -34,13 +56,9 @@ function Mainscreen() {
         const video = videoRef.current;
         if (!video) return;
         video.srcObject = stream;
-
-        // 🔥 IMPORTANT iOS FIXES
         video.setAttribute("playsinline", true);
         video.setAttribute("webkit-playsinline", true);
         video.muted = true;
-
-        // wait for metadata then play
         video.onloadedmetadata = async () => {
           try {
             await video.play();
@@ -60,9 +78,13 @@ function Mainscreen() {
     };
   }, []);
 
+  // //////////////////////////////////////////////////////////////////
+
+  // //////////////////////////////////////////////////////////////////
   // 📸 CAPTURE IMAGE
   const handleClickEvent = async () => {
     setSpinner(true);
+    await SpeechManager.coldStartSpeechUtterance(); // COLD START SPEECH MANAGER CLASS
     const video = videoRef.current;
     video.pause();
     const canvas = canvasRef.current;
@@ -72,73 +94,103 @@ function Mainscreen() {
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageUrl = canvas.toDataURL("image/jpeg", 0.4);
-    console.log("Captured:", imageUrl);
-    try {
-      const is_dev = false;
-      const payload = { input: imageUrl };
-      const response = await axios.post(
-        is_dev === true
-          ? "http://localhost:3453/api/v1/scanDocument"
-          : "https://asterik-backend.onrender.com/api/v1/scanDocument",
-        payload,
-      );
-      console.log(response, payload);
-      if (response.data.msg) {
-        setData(response.data.msg);
-        setTimeout(() => {
-          setSpinner(false);
-          showReveal(true);
-        }, 500);
-        clearTimeout();
-      } else if (response.data.error) {
-        alert(response.data.error);
-      }
-    } catch (err) {
-      console.log(err);
-      alert("something went wrong");
-      try {
+    const isInternetAvailable = await checkInternetAvailability();
+    if (isInternetAvailable === false) {
+      video.play();
+      set_no_internet_status({
+        text: "No Internet Connection",
+        status: true,
+      });
+      setPosition("0");
+      setTimeout(() => {
         setSpinner(false);
-        await video.play();
+        set_no_internet_status({
+          text: "Internet Connection Available",
+          status: false,
+        });
+        setPosition("-100");
+      }, 3000);
+      clearTimeout();
+      return;
+    } else {
+      try {
+        const payload = { input: imageUrl };
+        const response = await axios.post(
+          is_dev === true
+            ? "http://localhost:3453/api/v1/scanDocument"
+            : "https://asterik-backend.onrender.com/api/v1/scanDocument",
+          payload,
+        );
+        console.log(response, payload);
+        if (response.data.msg) {
+          setData(response.data.msg);
+          setTimeout(async () => {
+            setSpinner(false);
+            showReveal(true);
+            SpeechManager.useBrowserInbuiltTTS(
+              response.data.msg,
+              (index) => setCurrentWordIndex(index), // onWordBoundary
+              () => setCurrentWordIndex(-1), // onEnd
+            );
+          }, 500);
+          clearTimeout();
+        } else if (response.data.error) {
+          alert(response.data.error);
+        }
       } catch (err) {
-        console.error("Video play failed:", err);
+        console.log(err);
+        alert("something went wrong");
+        try {
+          setSpinner(false);
+          await video.play();
+        } catch (err) {
+          console.error("Video play failed:", err);
+        }
       }
     }
   };
-
+  // ////////////////////////////////////////////////////////////////////
   return (
     <>
+      {/* @ BottomSheet component  */}
       {reveal && (
         <BottomSheet
           inputData={data}
+          currentWordIndex={currentWordIndex} // <-- ADD THIS LINE
           closeModal={() => {
+            window.speechSynthesis.cancel();
+            setCurrentWordIndex(-1); // Reset the highlight
             videoRef.current?.play();
             showReveal(false);
           }}
         />
       )}
-
+      {no_internet_status.status === true ? (
+        <NoInternet
+          position={position}
+          textStatus="No Internet Connection"
+          bgColor="red"
+        />
+      ) : (
+        <></>
+      )}
       <Container>
         <canvas ref={canvasRef} style={{ display: "none" }} />
-
         <Video ref={videoRef} autoPlay playsInline muted />
-
         <ParentWrapper>
           <img
             src={Capture}
             alt="overlay"
             style={{ top: "200px", position: "absolute" }}
           />
-
           <Wrapper>
             <ControlPanelParentContainer>
               <SecondaryIconWrapper>
                 <TbPhoto color="var(--text-color)" size={25} />
               </SecondaryIconWrapper>
-
               <PrimaryIconWrapper onClick={handleClickEvent}>
                 {spinner ? <SpinnerIcon /> : <FaBolt size={25} />}
               </PrimaryIconWrapper>
-
               <SecondaryIconWrapper
                 onClick={() => {
                   setDirection(false);
@@ -156,10 +208,7 @@ function Mainscreen() {
 
 export default Mainscreen;
 
-//
 // ⚡ ANIMATIONS
-//
-
 const rotate = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -169,10 +218,6 @@ const SpinnerIcon = styled(PiSpinnerBold)`
   font-size: 25px;
   animation: ${rotate} 1s linear infinite;
 `;
-
-//
-// 📱 LAYOUT
-//
 
 const Container = styled.div`
   width: 100vw;
@@ -198,7 +243,6 @@ const Wrapper = styled.div`
   height: 19vh;
   position: absolute;
   bottom: 0;
-
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.9) 0%,

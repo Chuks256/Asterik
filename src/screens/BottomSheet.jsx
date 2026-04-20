@@ -1,36 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 
-function BottomSheet(props) {
-  const [displayText, setDisplayText] = useState("");
+function BottomSheet({ inputData, closeModal, currentWordIndex }) {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    if (!props.inputData) return;
-
-    const text = String(props.inputData); // 🛡️ prevents undefined issues
-    let index = 0;
-
-    setDisplayText("");
-
-    const interval = setInterval(() => {
-      setDisplayText(text.slice(0, index));
-      index++;
-
-      if (index > text.length) {
-        clearInterval(interval);
-      }
-    }, 15); // speed control (lower = faster)
-
-    return () => clearInterval(interval);
-  }, [props.inputData]);
-
-  // auto-scroll like chatbot
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const activeWord = scrollRef.current?.querySelector(".active-word");
+    if (activeWord) {
+      activeWord.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [displayText]);
+  }, [currentWordIndex]);
+
+  const words = String(inputData || "").split(" ");
 
   return (
     <Container>
@@ -39,11 +20,19 @@ function BottomSheet(props) {
           <Title>Result</Title>
 
           <ResultComponent ref={scrollRef}>
-            {displayText}
+            {words.map((word, index) => (
+              <Word
+                key={index}
+                className={index === currentWordIndex ? "active-word" : ""}
+                $isHighlighted={index === currentWordIndex}
+              >
+                {word}
+              </Word>
+            ))}
             <Cursor />
           </ResultComponent>
 
-          <CancelButton onClick={props.closeModal}>Cancel</CancelButton>
+          <CancelButton onClick={closeModal}>Cancel</CancelButton>
         </SubContainer>
       </Modal>
     </Container>
@@ -52,10 +41,37 @@ function BottomSheet(props) {
 
 export default BottomSheet;
 
-//
-// ✨ ANIMATIONS
-//
+// --- STYLES ---
 
+const Word = styled.span`
+  transition: all 0.1s ease-in-out;
+  background: ${(props) => (props.$isHighlighted ? "#7227f4" : "transparent")};
+  color: ${(props) => (props.$isHighlighted ? "white" : "#999")};
+  font-weight: ${(props) => (props.$isHighlighted ? "bold" : "normal")};
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 2px;
+  display: inline-block;
+  letter-spacing: ${(props) => (props.$isHighlighted ? "-0.2px" : "normal")};
+`;
+
+const ResultComponent = styled.div`
+  flex: 1;
+  border-radius: 10px;
+  color: white;
+  font-size: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.6;
+  letter-spacing: -0.1px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
 const blink = keyframes`
   0% { opacity: 1; }
   50% { opacity: 0; }
@@ -72,37 +88,40 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-//
-// 🧠 CURSOR
-//
-
 const Cursor = styled.span`
   display: inline-block;
   width: 2px;
   height: 16px;
-  background: white;
-  margin-left: 4px;
+  background: #7227f4;
+  margin-left: 2px;
   animation: ${blink} 0.8s infinite;
+  vertical-align: middle;
 `;
-
-//
-// 📦 UI
-//
 
 const Container = styled.div`
   z-index: 9999999;
-  position: absolute;
-  background: rgba(56, 55, 55, 0.48);
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgba(55, 54, 54, 0.76);
   width: 100vw;
   height: 100vh;
   animation: ${fadeIn} 0.3s ease;
 `;
 
 const Modal = styled.div`
-  background: #020203;
+  background: linear-gradient(
+    to bottom,
+    #020203 0%,
+    #020203 20%,
+    #020203 40%,
+    #020203 60%,
+    #020203 65%,
+    #8641fe 100%
+  );
   width: 100vw;
   position: absolute;
-  height: 75%;
+  height: 80%;
   bottom: 0;
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
@@ -110,52 +129,31 @@ const Modal = styled.div`
 `;
 
 const SubContainer = styled.div`
-  padding: 25px;
+  padding: 26px;
   display: flex;
   height: 86%;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 `;
 
 const Title = styled.h2`
   color: white;
   font-size: 16px;
+  margin-bottom: 5px;
 `;
-
-//
-// 📜 RESULT BOX (FIXED SCROLL + NO OVERFLOW)
-//
-
-const ResultComponent = styled.div`
-  flex: 1;
-  padding: 15px;
-  background: #101017;
-  border-radius: 10px;
-  color: white;
-  font-size: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  word-break: break-word;
-  white-space: pre-wrap;
-  line-height: 1.6;
-  scrollbar-width: thin;
-`;
-
-//
-// 🔘 BUTTON
-//
 
 const CancelButton = styled.button`
-  color: white;
+  color: var(--text-color);
   padding: 15px;
   border: none;
-  border-radius: 7px;
+  border-radius: 12px;
   width: 100%;
   font-weight: bold;
+  font-size: 16px;
   background: linear-gradient(to top, #7227f4 0%, #8641fe 100%);
   transition: 0.1s ease;
-
+  cursor: pointer;
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 `;
